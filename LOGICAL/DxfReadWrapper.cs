@@ -93,7 +93,7 @@ namespace DXFRendering.LOGICAL
                                         // A bulge of 0 indicates a straight segment, and a bulge of 1 is a semicircle
                                         double angleOfArcRad = System.Math.Atan(Math.Abs(point1.Bulge)) * 4;
                                         // http://mymathforum.com/algebra/21368-find-equation-circle-given-two-points-arc-angle.html
-                                        // tides of Internet have almost washed this article
+                                        // tides of Internet have almost washed this post in forum
                                         double xA; double xB; double yA; double yB;
                                         if (point1.Bulge < 0) {
                                             xA = point2.X; yA = point2.Y;
@@ -112,7 +112,6 @@ namespace DXFRendering.LOGICAL
                                         double yC_plus = yM + m*a / Math.Sqrt(m * m + 1);
                                         double yC_minus = yM - m*a / Math.Sqrt(m * m + 1);
                                         // https://en.wikipedia.org/wiki/Linear_equation#Point%E2%80%93slope_form
-
                                         double usedXCenter; double usedYCenter; double usedAngle1; double usedAngle2;
                                         // https://stackoverflow.com/questions/1311049/how-to-map-atan2-to-degrees-0-360
                                         double angle1_candidate1 = (Math.Atan2(yA - yC_plus, xA - xC_plus) * 180 / Math.PI+360)%360;
@@ -132,12 +131,6 @@ namespace DXFRendering.LOGICAL
                                                 usedAngle2 = angle2_candidate2;
                                                 usedXCenter = xC_minus; usedYCenter = yC_minus;
                                             }
-                                            MyDxfArc TransfArc = new MyDxfArc(usedXCenter, usedYCenter,
-                                                usedAngle1,
-                                                usedAngle2,
-                                                Math.Sqrt(r_square),
-                                                polylineS.Layer);
-                                            valueToReturn.addDxfDrawingEntry(TransfArc);
                                         } else {
                                             if (angle1_candidate1 > angle2_candidate1)  {
                                                 usedAngle1 = angle1_candidate2;
@@ -148,13 +141,13 @@ namespace DXFRendering.LOGICAL
                                                 usedAngle2 = angle2_candidate1;
                                                 usedXCenter = xC_plus; usedYCenter = yC_plus;
                                             }
-                                            MyDxfArc TransfArc = new MyDxfArc(usedXCenter, usedYCenter,
-                                                usedAngle1,
-                                                usedAngle2,
-                                                Math.Sqrt(r_square),
-                                                polylineS.Layer);
-                                            valueToReturn.addDxfDrawingEntry(TransfArc);
                                         }
+                                        MyDxfArc TransfArc = new MyDxfArc(usedXCenter, usedYCenter,
+                                            usedAngle1,
+                                            usedAngle2,
+                                            Math.Sqrt(r_square),
+                                            polylineS.Layer);
+                                        valueToReturn.addDxfDrawingEntry(TransfArc);
                                     }
                                 }
                                 if (polylineS.IsClosed)  {
@@ -164,6 +157,52 @@ namespace DXFRendering.LOGICAL
                                         MyDxfLine TransfLine = new MyDxfLine(point1.X, point1.Y, point2.X, point2.Y, polylineS.Layer);
                                         valueToReturn.addDxfDrawingEntry(TransfLine);
                                     } else { // arc
+                                             // I so like the code above, so I cannot resist to copypaste it
+
+                                        double angleOfArcRad = System.Math.Atan(Math.Abs(point1.Bulge)) * 4;
+                                        double xA; double xB; double yA; double yB;
+                                        if (point1.Bulge < 0)     {
+                                            xA = point2.X; yA = point2.Y;   xB = point1.X; yB = point1.Y;
+                                        } else {
+                                            xA = point1.X; yA = point1.Y;   xB = point2.X; yB = point2.Y;
+                                        }
+                                        double d_square = (xA - xB) * (xA - xB) + (yA - yB) * (yA - yB);
+                                        double r_square = (d_square) / (2.0 * (1.0 - Math.Cos(angleOfArcRad)));
+                                        double m = (xA - xB) / (yB - yA);
+                                        double a = Math.Sqrt(r_square - d_square / 4.0);
+                                        double xM = (xA + xB) / 2.0; double yM = (yA + yB) / 2.0;
+                                        double xC_plus = xM + a / Math.Sqrt(m * m + 1);
+                                        double xC_minus = xM - a / Math.Sqrt(m * m + 1);
+                                        double yC_plus = yM + m * a / Math.Sqrt(m * m + 1);
+                                        double yC_minus = yM - m * a / Math.Sqrt(m * m + 1);
+                                        // https://en.wikipedia.org/wiki/Linear_equation#Point%E2%80%93slope_form
+                                        double usedXCenter; double usedYCenter; double usedAngle1; double usedAngle2;
+                                        // https://stackoverflow.com/questions/1311049/how-to-map-atan2-to-degrees-0-360
+                                        double angle1_candidate1 = (Math.Atan2(yA - yC_plus, xA - xC_plus) * 180 / Math.PI + 360) % 360;
+                                        double angle2_candidate1 = (Math.Atan2(yB - yC_plus, xB - xC_plus) * 180 / Math.PI + 360) % 360;
+                                        double angle1_candidate2 = (Math.Atan2(yA - yC_minus, xA - xC_minus) * 180 / Math.PI + 360) % 360;
+                                        double angle2_candidate2 = (Math.Atan2(yB - yC_minus, xB - xC_minus) * 180 / Math.PI + 360) % 360;
+                                        //mydxfarc expects angles counterclockwise
+                                        if (point1.Bulge > 0) {
+                                            if (angle1_candidate1 < angle2_candidate1) {
+                                                usedAngle1 = angle1_candidate1; usedAngle2 = angle2_candidate1;
+                                                usedXCenter = xC_plus; usedYCenter = yC_plus;
+                                            } else {
+                                                usedAngle1 = angle1_candidate2; usedAngle2 = angle2_candidate2;
+                                                usedXCenter = xC_minus; usedYCenter = yC_minus;
+                                            }
+                                        } else {
+                                            if (angle1_candidate1 > angle2_candidate1) {
+                                                usedAngle1 = angle1_candidate2; usedAngle2 = angle2_candidate2;
+                                                usedXCenter = xC_minus; usedYCenter = yC_minus;
+                                            } else {
+                                                usedAngle1 = angle1_candidate1; usedAngle2 = angle2_candidate1;
+                                                usedXCenter = xC_plus; usedYCenter = yC_plus;
+                                            }
+                                        }
+                                        MyDxfArc TransfArc = new MyDxfArc(usedXCenter, usedYCenter,
+                                            usedAngle1, usedAngle2, Math.Sqrt(r_square), polylineS.Layer);
+                                        valueToReturn.addDxfDrawingEntry(TransfArc);
 
                                     }
                                 }
@@ -172,6 +211,8 @@ namespace DXFRendering.LOGICAL
                             }
                         case DxfEntityType.Polyline:
                             {
+                                //this is a spawn of autocad. Either copypaste code from LwPolyline section. Or just save the file in QCad. 
+                                //QCad replaces all polylines by lwPolylines
                                 //https://github.com/IxMilia/Dxf/issues/90
                                 DxfPolyline polyline = entity as DxfPolyline;
 
