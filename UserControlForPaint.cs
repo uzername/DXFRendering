@@ -32,7 +32,7 @@ namespace DXFRendering
         {
             collectionOfLayerDefinitions = new Dictionary<string, Tuple<byte, Pen>>();
             Pen BluePenAlu = new Pen(new SolidBrush(Color.Blue), 3.0f);
-            Pen YellowPenExtProf = new Pen(new SolidBrush(Color.GreenYellow), 1.0f);
+            Pen YellowPenExtProf = new Pen(new SolidBrush(Color.DarkOrange), 1.0f);
             YellowPenExtProf.DashPattern = new float[] { 3.0f, 5.0f, 3.0f, 7.0f, 3.0f };
             Pen RedPenPvc = new Pen(new SolidBrush(Color.Red), 1.0f);
             Pen OrangePenThermalBridge = new Pen(new SolidBrush(Color.OrangeRed), 1.0f);
@@ -191,6 +191,54 @@ namespace DXFRendering
                 throw new NullReferenceException("primalDrawingStructure was null. Either DXF file was not read or setupLogicalAndGraphicalDXFstructures was not called");
             }
         }
+
+        /// <summary>
+        /// distiles actual drawing structure from earlier set initial draw structure
+        /// </summary>
+        /// <param name="in_initialRotationAngleRad"></param>
+        public void prepareActualGraphicalDXFStructure(double in_initialRotationAngleRad)
+        {
+            if (primalDrawingStructure != null)
+            {
+                this.SuspendLayout();
+                actualDrawingStructure = new CompleteDxfDrawingStruct(primalDrawingStructure,in_initialRotationAngleRad);
+
+                //expand the size of drawing control
+                // A TOURNAMENT FOR SELECTION OF INITIAL SCALE FACTOR STARTS NOW!
+                // RULES: get two scale factors (horizontal and vertical) and use that one which is smaller
+                double internalScaleFactorHorizontalChallenger = (this.Size.Width) / (Math.Abs(actualDrawingStructure.XLowerLeft - actualDrawingStructure.XUpperRight) + 2);
+                double internalScaleFactorVerticalChallenger = (this.Size.Height) / (Math.Abs(actualDrawingStructure.YLowerLeft - actualDrawingStructure.YUpperRight) + 2);
+                if (internalScaleFactorHorizontalChallenger < internalScaleFactorVerticalChallenger)
+                {
+                    internalScaleFactor = internalScaleFactorHorizontalChallenger;
+                }
+                else
+                {
+                    internalScaleFactor = internalScaleFactorVerticalChallenger;
+                }
+                this.realPaintingCanvas.Height = (int)(internalScaleFactor * Math.Abs(actualDrawingStructure.YLowerLeft - actualDrawingStructure.YUpperRight)) + 3;
+                this.realPaintingCanvas.Width = (int)(internalScaleFactor * Math.Abs(actualDrawingStructure.XLowerLeft - actualDrawingStructure.XUpperRight)) + 3;
+                this.realPaintingCanvas.Left = this.Width / 2 - realPaintingCanvas.Width / 2 + 1;
+                this.realPaintingCanvas.Top = this.Height / 2 - realPaintingCanvas.Height / 2 + 1;
+                internalScaleFactorChangedInternally?.Invoke(internalScaleFactor);
+                this.ResumeLayout(true);
+            }
+            else
+            {
+                throw new NullReferenceException("primalDrawingStructure was null. Either DXF file was not read or setupLogicalAndGraphicalDXFstructures was not called");
+            }
+        }
+
+
+        /// <summary>
+        /// rotate all entries in a structure around bounding box center point. Changes coordinates of them
+        /// </summary>
+        /// <param name="in_deg"></param>
+        public void performRotationOfDxfStruct(double in_deg)
+        {
+
+        }
+
 
         public void UserControlForPaint_Resize(object sender, EventArgs e)
         {

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.Collections;
+using DXFRendering.LOGICAL;
 
 namespace DXFRendering.GRAPHICAL
 {
@@ -91,6 +92,18 @@ namespace DXFRendering.GRAPHICAL
             penStructure = in_Pen;
         }
 
+        public MyDxfArcForDisplay(Pen in_Pen, double in_XUpper, double in_YUpper, double in_Width, double in_Height, double in_StartAngleCCW, double in_sweepAngle)
+        {
+            startAngle = in_StartAngleCCW;
+            sweepAngle = in_sweepAngle;
+            XUpper = in_XUpper;
+            YUpper = in_YUpper;
+
+            Width = in_Width;
+            Height = in_Height;
+            penStructure = in_Pen;
+        }
+
     }
     public class CompleteDxfDrawingStruct: IEnumerable {
         public double XLowerLeft { get; private set; }
@@ -98,6 +111,7 @@ namespace DXFRendering.GRAPHICAL
         public double XUpperRight { get; private set; }
         public double YUpperRight { get; private set; }
         private List<DXFentryForDisplay> allEntriesUsingInDisplay = new List<DXFentryForDisplay>();
+
         //This routine is used by rendering control. 4 parameters here are the bounding box of Entry
         public void addSingleEntry(DXFentryForDisplay in_Entry, double in_XLowerLeft, double in_YLowerLeft, double in_XUpperRight, double in_YUpperRight)
         {
@@ -138,6 +152,48 @@ namespace DXFRendering.GRAPHICAL
                 }
             }
         }
-        
+
+        public CompleteDxfDrawingStruct(CompleteDxfDrawingStruct structToCopy, double in_initialRotationAngleRad) 
+        {
+            if (structToCopy != null)  {
+                XLowerLeft = structToCopy.XLowerLeft;
+                YLowerLeft = structToCopy.YLowerLeft;
+                XUpperRight = structToCopy.XUpperRight;
+                YUpperRight = structToCopy.YUpperRight;
+
+                //obtain center of rotation
+                double horizontalMidPoint = (structToCopy.XLowerLeft + structToCopy.XUpperRight) / 2.0;
+                double verticalMidPoint = (structToCopy.YLowerLeft + structToCopy.YUpperRight) / 2.0;
+                //obtain rotation matrix
+                double[,] currentRotationMatrix = MathHelperForTransformations.getRotationMatrixAroundPoint(horizontalMidPoint, verticalMidPoint, in_initialRotationAngleRad);
+                //iterate over all entries in dxf structure altering them
+                int allCount = structToCopy.allEntriesUsingInDisplay.Count;
+                for (int iiii = 0; iiii < allCount; iiii++ )
+                {
+                    DXFentryForDisplay item = structToCopy.allEntriesUsingInDisplay[iiii];
+                    //get bound box and rotate it
+                    
+                    if (item is MyDxfLineForDisplay)
+                    {
+
+                        Tuple<double, double> coord1 = MathHelperForTransformations.rotateImageUsingPrecalculatedTransformationMatrix(currentRotationMatrix, (item as MyDxfLineForDisplay).XStart, (item as MyDxfLineForDisplay).YStart);
+                        double item2XStart = coord1.Item1;
+                        double item2YStart = coord1.Item2;
+                        Tuple<double, double> coord2 = MathHelperForTransformations.rotateImageUsingPrecalculatedTransformationMatrix(currentRotationMatrix, (item as MyDxfLineForDisplay).XEnd, (item as MyDxfLineForDisplay).YEnd);
+                        double item2XEnd = coord2.Item1;
+                        double item2YEnd = coord2.Item2;
+                        MyDxfLineForDisplay item2 = new MyDxfLineForDisplay(item2XStart, item2YStart, item2XEnd, item2YEnd, (item as MyDxfLineForDisplay).penStructure);
+                        
+                    }
+                    else if (item is MyDxfArcForDisplay)
+                    {
+                        Tuple<double, double> coordUpper = MathHelperForTransformations.rotateImageUsingPrecalculatedTransformationMatrix(currentRotationMatrix, (item as MyDxfArcForDisplay).XUpper, (item as MyDxfArcForDisplay).YUpper);
+                        double startAngleDegree = (item as MyDxfArcForDisplay).startAngle + MathHelperForTransformations.ConvertRadiansToDegrees(in_initialRotationAngleRad);
+                        MyDxfArcForDisplay item2 = new MyDxfArcForDisplay((item as MyDxfArcForDisplay).penStructure, coordUpper.Item1, coordUpper.Item2, (item as MyDxfArcForDisplay).Width, (item as MyDxfArcForDisplay).Height, startAngleDegree, (item as MyDxfArcForDisplay).sweepAngle);
+
+                    }
+                }
+            }
+        }
     }
 }
