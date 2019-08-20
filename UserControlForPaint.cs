@@ -107,7 +107,7 @@ namespace DXFRendering
         }
 
         /// <summary>
-        /// Setup only INITIAL logical and graphical datastructures. 
+        /// Setup only INITIAL logical and graphical datastructures. No rotation performed
         /// </summary>
         /// <param name="in_savedStructureOfDxf">Logical structure of DXF as read from file</param>
         public void setupLogicalAndGraphicalDXFstructures(LOGICAL.completeDxfStruct  in_savedStructureOfDxf)
@@ -147,7 +147,57 @@ namespace DXFRendering
             }
             //performing flip on draw structure is done by means of graphical container
         }
+        /// <summary>
+        /// Setup only INITIAL logical and graphical datastructures. Rotation performed, but only on-the-fly
+        /// </summary>
+        public void setupLogicalAndGraphicalDXFstructures(LOGICAL.completeDxfStruct in_savedStructureOfDxf, double in_Rotation)
+        {
+            savedStructureOfDxf = in_savedStructureOfDxf;
+            //generate primal drawing structure
+            MyDxfBoundingBox obtainedBox2 = savedStructureOfDxf.GetBoundingBox();
+            double XCenter = (obtainedBox2.XLowerLeft + obtainedBox2.XUpperRight) / 2.0;
+            double YCenter = (obtainedBox2.YLowerLeft + obtainedBox2.YUpperRight) / 2.0;
+            //initial unrotated offset
+            if (obtainedBox2.XLowerLeft != 0) { offsetOfDxfHorizontal = 0 - obtainedBox2.XLowerLeft; }
+            if (obtainedBox2.YLowerLeft != 0) { offsetOfDxfVertical = 0 - obtainedBox2.YLowerLeft; }
+            primalDrawingStructure = new CompleteDxfDrawingStruct(null);
+            int currentSizeOfDxfStruct = savedStructureOfDxf.getSize();
+            for (int i = 0; i < currentSizeOfDxfStruct; i++)
+            {
+                DXFdrawingEntry someEntry = savedStructureOfDxf.getItemByIndex(i);
+                MyDxfBoundingBox obtainedBox = someEntry.GetBoundingBox();
+                //offsets to centralize the drawing in the box
+                Pen usedPen = null;
+                if ((collectionOfLayerDefinitions != null) && (collectionOfLayerDefinitions.ContainsKey(someEntry.layerIdentifier)))
+                {
+                    usedPen = collectionOfLayerDefinitions[someEntry.layerIdentifier].Item2;
+                }
+                else
+                {
+                    usedPen = new Pen(Color.Black);
+                }
 
+                if (someEntry is MyDxfLine)
+                {
+                    MyDxfLine castLine = someEntry as MyDxfLine;
+
+                    DXFentryForDisplay theLineForDisplay = new MyDxfLineForDisplay(castLine.XStart + offsetOfDxfHorizontal, castLine.YStart + offsetOfDxfVertical, castLine.XEnd + offsetOfDxfHorizontal, castLine.YEnd + offsetOfDxfVertical, usedPen);
+                    primalDrawingStructure.addSingleEntry(theLineForDisplay, obtainedBox.XLowerLeft + offsetOfDxfHorizontal, obtainedBox.YLowerLeft + offsetOfDxfVertical, obtainedBox.XUpperRight + offsetOfDxfHorizontal, obtainedBox.YUpperRight + offsetOfDxfVertical);
+                }
+                else if (someEntry is MyDxfArc)
+                {
+                    MyDxfArc castArc = someEntry as MyDxfArc;
+                    DXFentryForDisplay theArcForDisplay = new MyDxfArcForDisplay(castArc.XCenter + offsetOfDxfHorizontal, castArc.YCenter + offsetOfDxfVertical, castArc.Radius, castArc.StartAngleDegree, castArc.EndAngleDegree, usedPen);
+                    primalDrawingStructure.addSingleEntry(theArcForDisplay, obtainedBox.XLowerLeft + offsetOfDxfHorizontal, obtainedBox.YLowerLeft + offsetOfDxfVertical, obtainedBox.XUpperRight + offsetOfDxfHorizontal, obtainedBox.YUpperRight + offsetOfDxfVertical);
+                }
+            }
+            //calculate real offsetOfDxfHorizontal and offsetOfDxfVertical is not actually needed
+            //performing flip on draw structure is done by means of graphical container
+        }
+
+        /// <summary>
+        /// calculate and apply scale to drawing structure. setupLogicalAndGraphicalDXFstructures should be called before
+        /// </summary>
         public void prepareActualGraphicalDXFStructure()  {
             if (primalDrawingStructure != null) {
                 this.SuspendLayout();
